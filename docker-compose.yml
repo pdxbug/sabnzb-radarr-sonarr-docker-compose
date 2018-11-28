@@ -1,0 +1,135 @@
+version: '3.4'
+services:
+      
+    proxy:
+        image: adduc/alpine-nginx
+        restart: always
+        stop_signal: SIGKILL
+        ports:
+            - "80:80"
+        volumes:
+            - /media/root/Storage/Documents/data/proxy/logs:/var/log/nginx
+            - /media/root/Storage/Downloads/Repositories:/repos:ro
+            - /media/root/Storage/Documents/web:/web:ro
+            - /var/run/docker.sock:/tmp/docker.sock:ro
+        environment:
+            HOST_PMA: pma fastcgi /repos/phpmyadmin php-no-debug 1000
+            HOST_WEB: web fastcgi /yourusername/webroot php-debug 1001
+
+    sabnzbd:
+        image: linuxserver/sabnzbd:latest
+        container_name: sabnzbd
+        volumes:
+            - /media/root/Storage/sabnzbd/config:/config
+            - /media/root/Storage/media/downloads/complete:/downloads/complete
+            - /media/root/Storage/media/downloads/incomplete:/downloads/incomplete
+            - /media/root/Storage/sabnzbd/watch:/downloads/watch
+        ports:
+            - 8080:8080
+        env_file: uidgid.env
+        environment:
+            - EDGE=1
+            - VIRTUAL_HOST=sabnzbd.home.com
+            - VIRTUAL_PORT=8080
+        restart: always
+
+    plex:
+        image: linuxserver/plex:146
+        container_name: plex
+        volumes:
+            - /media/root/Storage/plex/config/plex:/config
+            - /media/root/Storage/media/tv:/data/tvshows
+            - /media/root/Storage/media/movies:/data/movies
+        ports:
+            - 32469:32469
+            - 32400:32400
+            - 32401:32401
+            - 3005:3005
+            - 8324:8324
+            - 1900:1900/udp
+            - 32410:32410/udp
+            - 32412:32412/udp
+            - 32413:32413/udp
+            - 32414:32414/udp
+        env_file: uidgid.env
+        environment:
+            - VIRTUAL_HOST=plex.home.com
+            - VIRTUAL_PORT=32400
+            - VERSION=public
+        restart: always
+
+    sonarr:
+        image: linuxserver/sonarr
+        container_name: sonarr
+        volumes:
+            - /media/root/Storage/sonarr/config/sonarr:/config
+            - /etc/localtime:/etc/localtime:ro
+            - /media/root/Storage/media/tv:/tv
+            - /media/root/Storage/media/downloads/complete:/downloads/complete
+            - /media/root/Storage/media/downloads/incomplete:/downloads/incomplete
+        ports:
+            - 8989:8989
+        env_file: uidgid.env
+        environment:
+            - VIRTUAL_HOST=sonarr.home.com
+            - VIRTUAL_PORT=8989
+        restart: always
+
+    radarr:
+        container_name: radarr
+        image: linuxserver/radarr
+        restart: unless-stopped
+        depends_on:
+          - sabnzbd
+          - plex
+        ports:
+            - 7878:7878
+        environment:
+          - TZ=America/Chicago
+          - PUID=1000
+          - PGID=1000
+          - VIRTUAL_PORT=7878
+        volumes:
+          - /media/root/Storage/sonarr/config/radarr:/config
+          - /media/root/Storage/media/movies:/movies
+          - /media/root/Storage/media/downloads/complete:/downloads
+
+    database:
+        image: mariadb:10.2
+        restart: always
+        ports:
+            - "enteryourserveripaddress:3306:3306"
+        command: --sql_mode=""
+        volumes:
+            - /media/root/Storage/Documents/data/mariadb/data:/var/lib/mysql
+            - /media/root/Storage/Documents/data/mariadb/logs:/var/logs/mysql
+            - ./config/my.cnf:/etc/mysql/conf.d/my.cnf
+        environment:
+            MYSQL_ROOT_PASSWORD: secretpassword
+
+    php-debug:
+        image: adduc/alpine-php:71-build
+        restart: always
+        stop_signal: SIGKILL
+        expose:
+            -  "1000-1005"
+        volumes:
+            - /media/root/Storage/Documents/data/php/logs:/var/log/php
+            - /media/root/Storage/Downloads/Repositories:/repos
+            - /media/root/Storage/Documents/web:/web
+        environment:
+            # POOL: port
+            POOL_WEB: 1001
+
+    php-no-debug:
+        image: adduc/alpine-php:71-fpm
+        restart: always
+        stop_signal: SIGKILL
+        expose:
+            -  "1000-1004"
+        volumes:
+            - /media/root/Storage/Documents/data/php/logs:/var/log/php
+            - /media/root/Storage/Downloads/Repositories:/repos
+        environment:
+            # HOST: port
+            POOL_PMA: 1000
