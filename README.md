@@ -9,6 +9,9 @@ I don't have any huge system requirements and have this running on an older Inte
 For MariaDB to work you need to download the repository from https://github.com/MariaDB/server and place it in /media/root/Storage/Downloads/Repositories
 Update enteryourserveripaddress:3306:3306 and change the secretpassword
 
+Move the convertdelete into /etc/cron.hourly
+Modify it to your needs. If you modify the /media/root/Storage folders, you will need to also modify this file accordingly
+
 Notes:
 I run my Storage on a larger media drive and not on the smaller system SSD. I've created a symlink to the storage drive in /home/root/Storage and /home/$USER/Storage to easily access when logging in. Feel free to modify this for your needs.
 
