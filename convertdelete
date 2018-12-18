@@ -1,10 +1,8 @@
 #!/bin/sh
-#this file is intended to locate, convert from mkv to mp4, and then delete the original file
-
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
-find /home/bug/Storage/media/ -name "*.mkv" | while read f
-do ffmpeg -i "$f" -c copy -y "${f%.*}.mp4" < /dev/null;
+find /home/bug/Storage/media/tv -name "*.mkv" | while read f
+do ffmpeg -i "$f" -c copy -y -flags +global_header -acodec aac -strict -2 -b:a $
 done;
 
 find /home/bug/Storage/media/ -name "*.mkv" | while read f
